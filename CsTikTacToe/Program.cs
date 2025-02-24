@@ -61,9 +61,11 @@ class Game
         Console.WriteLine("Next move?");
         string? input = Console.ReadLine();
 
-        if (input is null)
+        string invalidMoveMessage = "Invalid move. Syntax: \"YX\", where Y is the column and X is the row (0..2) \n";
+
+        if (input is null || input.Length != 2)
         {
-            Console.WriteLine("Invalid move. Try again:\n");
+            Console.WriteLine(invalidMoveMessage);
             return TakePlayerMove();
         }
 
@@ -72,7 +74,7 @@ class Game
 
         if (x < 0 || x > 2 || y < 0 || y > 2)
         {
-            Console.WriteLine("Invalid move. Try again:\n");
+            Console.WriteLine(invalidMoveMessage);
             return TakePlayerMove();
         }
 
