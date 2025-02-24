@@ -2,66 +2,88 @@
 
 class Game
 {
+    private readonly Board board = new();
+
     public Game()
     {
         while (true)
         {
-            PrintBoard();
-            Console.WriteLine();
+            Console.WriteLine(board);
 
-            (int playerMoveX, int playerMoveY) = TakePlayerMove();
-            board[playerMoveX, playerMoveY] = 'X';
+            TakeAndApplyPlayerMove();
+            if (CheckWinnerAndPrint()) break;
+            GetAndApplyComputerMove();
+            if (CheckWinnerAndPrint()) break;
+        }
+    }
 
-            (int computerMoveX, int computerMoveY) = GetComputerMove();
-            board[computerMoveX, computerMoveY] = 'Y';
-            Console.WriteLine();
+    private bool CheckWinnerAndPrint()
+    {
+        char? winner = board.GetWinner();
+        if (winner is not null)
+        {
+            Console.WriteLine(board);
 
-            char? winner = GetWinner();
-            if (winner is not null)
+            string message = winner switch
             {
-                PrintBoard();
+                'X' => "You won over the machine. The apocalypse is averted",
+                'O' => "You lost to a machine. LMAO!",
+                _ => throw new Exception()
+            };
+
+            Console.WriteLine(message);
+            return true;
+        }
+        return false;
+    }
+
+    private void TakeAndApplyPlayerMove()
+    {
+        while (true)
+        {
+            try
+            {
+                (int playerMoveX, int playerMoveY) = TakePlayerMove();
+                board.MakeMove('X', playerMoveX, playerMoveY);
                 Console.WriteLine();
-                Console.WriteLine(winner + " won!");
                 break;
             }
-        }
-    }
-
-    private readonly char[,] board = { { '-', '-', '-', }, { '-', '-', '-', }, { '-', '-', '-', }, };
-
-    private void PrintBoard()
-    {
-        for (int y = 0; y < board.GetLength(0); y++)
-        {
-            for (int x = 0; x < board.GetLength(1); x++)
+            catch (FieldTakenException)
             {
-                Console.Write(board[y, x] + " ");
+                Console.WriteLine("This field is already taken!");
+                Console.WriteLine();
             }
-            Console.Write('\n');
         }
     }
 
-    private (int, int) TakePlayerMove()
+    private static (int, int) TakePlayerMove()
     {
         Console.WriteLine("Next move?");
         string? input = Console.ReadLine();
 
         if (input is null)
         {
-            Console.WriteLine("Invalid move. Try again:");
+            Console.WriteLine("Invalid move. Try again:\n");
             return TakePlayerMove();
         }
 
         int x = (int)char.GetNumericValue(input[0]);
         int y = (int)char.GetNumericValue(input[1]);
 
-        if (board[x, y] != '-')
+        if (x < 0 || x > 2 || y < 0 || y > 2)
         {
-            Console.WriteLine("This field is taken. Try again:");
+            Console.WriteLine("Invalid move. Try again:\n");
             return TakePlayerMove();
         }
 
         return (x, y);
+    }
+
+    private void GetAndApplyComputerMove()
+    {
+        (int computerMoveX, int computerMoveY) = GetComputerMove();
+        board.MakeMove('O', computerMoveX, computerMoveY);
+        Console.WriteLine();
     }
 
     private (int, int) GetComputerMove()
@@ -72,15 +94,51 @@ class Game
         do
         {
             x = rnd.Next(0, 3); y = rnd.Next(0, 3);
-        } while (board[x, y] != '-');
+        } while (!board.IsFieldFree(x, y));
 
         return (x, y);
     }
 
-    private char? GetWinner()
+}
+
+class Board
+{
+
+    private readonly char[,] fields = { { '-', '-', '-', }, { '-', '-', '-', }, { '-', '-', '-', }, };
+
+    public override string ToString()
+    {
+        string str = "";
+        for (int y = 0; y < fields.GetLength(0); y++)
+        {
+            for (int x = 0; x < fields.GetLength(1); x++)
+            {
+                str += fields[y, x] + " ";
+            }
+            str += '\n';
+        }
+        return str;
+    }
+
+    public void MakeMove(char player, int x, int y)
+    {
+        if (!IsFieldFree(x, y))
+        {
+            throw new FieldTakenException();
+        }
+
+        fields[x, y] = player;
+    }
+
+    public bool IsFieldFree(int x, int y)
+    {
+        return fields[x, y] == '-';
+    }
+
+    public char? GetWinner()
     {
         if (DidPlayerWin('X')) return 'X';
-        if (DidPlayerWin('Y')) return 'Y';
+        if (DidPlayerWin('O')) return 'O';
         return null;
     }
 
@@ -92,7 +150,7 @@ class Game
             for (int j = 0; j < winningMasks.GetLength(1); j++)
             {
                 (int x, int y) = winningMasks[i, j];
-                if (board[x, y] != player) won = false;
+                if (fields[x, y] != player) won = false;
             }
             if (won) return true;
         }
@@ -109,4 +167,22 @@ class Game
         {Tuple.Create(0,0),Tuple.Create(1,1),Tuple.Create(2,2)},
         {Tuple.Create(0,2),Tuple.Create(1,1),Tuple.Create(2,0)}
     };
+
 }
+
+public class FieldTakenException : Exception
+{
+    public FieldTakenException()
+    {
+    }
+
+    public FieldTakenException(string? message) : base(message)
+    {
+    }
+
+    public FieldTakenException(string? message, Exception? innerException) : base(message, innerException)
+    {
+    }
+
+}
+
